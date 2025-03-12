@@ -58,5 +58,10 @@
     "env": {
       "NODE_ENV": "production"
     }
+  },
+  "buildCommand": "npm run build:production",
+  "outputDirectory": "dist",
+  "github": {
+    "silent": true
   }
 }

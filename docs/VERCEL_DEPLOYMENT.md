@@ -36,8 +36,8 @@ Verify that your repository includes:
 4. Select the "production-vercel" branch for deployment
 5. Configure the project settings:
    - **Framework Preset**: Vite
-   - **Build Command**: `npm run build:production`
-   - **Output Directory**: `dist`
+   - **Build Command**: `npm run build:production` (This is automatically set in vercel.json)
+   - **Output Directory**: `dist` (This is automatically set in vercel.json)
    - **Install Command**: `npm install`
 
 ### 3. Set Environment Variables
@@ -59,6 +59,7 @@ VITE_SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 
 # Other Config
 NODE_ENV=production
+VERCEL_URL=your-vercel-deployment-url (automatically set by Vercel)
 ```
 
 #### Preview Environment Variables (for branch deployments):
@@ -134,6 +135,11 @@ SubPirate's Stripe client automatically detects your environment to use the corr
 - Production domains use live Stripe keys
 - Preview deployments (vercel.app) use test Stripe keys
 - localhost:* always uses test keys
+
+The application uses the domain name to determine which environment it's running in:
+- Custom domains like subpirate.com will always use production mode
+- Vercel preview URLs (containing .vercel.app) will use test mode
+- Local development URLs will use test mode
 
 ## Troubleshooting
 
