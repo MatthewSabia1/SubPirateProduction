@@ -6,6 +6,12 @@ SubPirate is a sophisticated Reddit marketing analysis tool designed to identify
 
 ## Recent Updates
 
+### Repository Reorganization (NEW)
+- **Simplified Branch Structure**: All development now centralized in the main branch
+- **Improved Deployment Flow**: Streamlined deployment process with a single source branch
+- **Cleaner Repository**: Removed redundant branches including production-vercel and vercel-production
+- **Easier Updates**: Simplified workflow for pulling latest changes in deployment platforms
+
 ### GitHub Repository Setup (NEW)
 - **Official GitHub Repository**: Established GitHub repository at https://github.com/MatthewSabia1/SubPirateProduction
 - **Version Control**: Implemented complete version control for all project files
