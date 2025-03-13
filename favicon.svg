@@ -1,0 +1,19 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Pirate Hat -->
+  <path d="M4 12C4 12 6.4 6.4 16 6.4C25.6 6.4 28 12 28 12L26.4 15.2H5.6L4 12Z" fill="#C69B7B" />
+  <path d="M5.6 15.2H26.4V17.6C26.4 17.6 24 22.4 16 22.4C8 22.4 5.6 17.6 5.6 17.6V15.2Z" fill="#C69B7B" />
+  
+  <!-- Skull -->
+  <circle cx="16" cy="18.4" r="6.4" fill="white" />
+  
+  <!-- Eyes -->
+  <circle cx="12.8" cy="17.6" r="1.6" fill="black" />
+  <circle cx="19.2" cy="17.6" r="1.6" fill="black" />
+  
+  <!-- Jaw -->
+  <path d="M12.8 21.6C12.8 21.6 14.4 23.2 16 23.2C17.6 23.2 19.2 21.6 19.2 21.6" stroke="black" strokeWidth="0.8" strokeLinecap="round" />
+  
+  <!-- Reddit antenna -->
+  <circle cx="16" cy="4" r="1.6" fill="#C69B7B" />
+  <path d="M16 5.6V8" stroke="#C69B7B" strokeWidth="1.6" strokeLinecap="round" />
+</svg> 

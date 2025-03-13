@@ -1,0 +1,161 @@
+# Project Intelligence (.clinerules)
+
+## Stripe Integration Best Practices
+
+### Database Management
+- Always use SQL transactions for database maintenance operations to ensure atomicity
+- Keep a list of official product and price IDs to track essential records
+- Filter out test products/prices during synchronization to prevent database clutter
+- Use descriptive naming for products and prices to maintain clarity
+- Maintain documentation of database schema and expected data structure
+- Periodically review and clean up the database to remove test data
+- Ensure proper foreign key relationships between products and prices
+
+### Stripe Synchronization
+- Track official product and price IDs in code to ensure important records are preserved
+- Use filtering logic to identify and exclude test products/prices during synchronization
+- Check for metadata indicators like `created_by_stripe_cli` to identify test products
+- Look for "test" in names and descriptions to identify test products
+- Consider prices with extremely low or high amounts as potential test prices
+- Maintain clear documentation of synchronization process
+- Log detailed information during synchronization for debugging
+
+### Test Environment
+- Use visual indicators in the UI to clearly show when in test mode
+- Configure fallback price IDs for each subscription tier for reliability
+- Enhance error logging for checkout process and webhook handling
+- Document common Stripe integration issues and solutions
+- Test all webhook events in the test environment before production
+- Verify the complete subscription lifecycle works properly
+
+### Production Readiness
+- Create a deployment checklist for Stripe production configuration
+- Document the process for switching to production mode
+- Test customer portal functionality before going live
+- Implement proper error messages for failed payments
+- Ensure all users have access to subscription management
+- Document the webhook setup process for both test and production
+
+## User Experience Patterns
+
+### UI Component Restoration
+- When restoring missing UI components, maintain consistent styling with existing elements
+- Properly implement event handlers to prevent event propagation issues
+- Position restored components in the correct layout position
+- Ensure state management functions properly connect to existing modals/functionality
+- Verify that all required props and event handlers are properly passed down
+- Test interaction with other components to ensure proper integration
+- Use consistent naming conventions for handlers (e.g., handle* prefix for event handlers)
+- Add appropriate accessibility attributes like title for tooltips
+- Maintain consistent icon sizes across similar action buttons
+
+### Error Handling
+- Use specific error types for better error handling
+- Include context in error messages for clarity
+- Implement proper error propagation to maintain consistency
+- Use centralized error handling to reduce code duplication
+- Provide helpful feedback to users when errors occur
+
+### Code Organization
+- Maintain consistent property naming across components
+- Use strong typing to prevent runtime errors
+- Implement comprehensive validation checks for data
+- Follow TypeScript best practices for type safety
+- Document code patterns and conventions
+
+### Data Management
+- Implement efficient data batching for API calls
+- Use proper caching strategies for improved performance
+- Ensure consistent data structure across components
+- Validate all parsed data from external sources
+- Provide meaningful defaults for missing data
+
+## Authentication Best Practices
+
+### OAuth Integration
+- Use the Supabase OAuth methods for implementing social login
+- Always provide a `redirectTo` URL that matches the application's callback route
+- Implement a dedicated callback component to handle OAuth redirects
+- Use loading indicators during authentication to provide user feedback
+- Implement comprehensive error handling for failed authentication attempts
+- Store authentication sessions securely
+- Use the onAuthStateChange listener to handle authentication events
+- Provide clear error messages for authentication failures
+- Test OAuth flows thoroughly across different environments
+- Configure OAuth providers correctly in the Supabase dashboard
+
+### Authentication Flow
+- Maintain consistent UI across authentication methods
+- Provide clear feedback during authentication processes
+- Implement proper loading states for asynchronous operations
+- Use comprehensive error handling for auth operations
+- Store user data securely and respect privacy
+- Refresh tokens appropriately to maintain sessions
+- Implement secure logout functionality
+- Use protected routes to prevent unauthorized access
+- Validate user sessions on navigation when appropriate
+- Create dedicated components for handling authentication callbacks
+
+### Supabase Configuration
+- Enable required OAuth providers in the Supabase dashboard
+- Configure proper redirect URLs for both development and production
+- Store Client IDs and Secrets securely
+- Configure proper scopes for OAuth providers
+- Test authentication flows in both development and production
+- Monitor authentication errors and address issues promptly
+- Document authentication configuration for future reference
+- Maintain a list of authorized redirect URIs
+- Test the complete authentication flow regularly
+- Follow security best practices for authentication
+
+## Analysis System
+
+### Type Safety
+- Use unknown for initial API responses
+- Validate all parsed data with proper type checking
+- Provide specific error types for better debugging
+- Maintain strict type definitions for consistency
+
+### Error Handling
+- Implement specific error messages with context
+- Add retry logic for API failures when appropriate
+- Provide graceful degradation when services fail
+- Maintain data consistency across operations
+- Log detailed information for debugging
+
+## Supabase Database Best Practices
+
+### Migrations
+- Create idempotent database migrations that can be run multiple times without error
+- Use IF EXISTS/IF NOT EXISTS clauses for tables, indexes, and constraints
+- DROP functions and triggers before recreating them to avoid conflicts
+- Add explicit permission grants in migration scripts
+- Set SECURITY DEFINER for functions that need elevated privileges
+- Use row-level security policies for proper data access control
+- Test migrations against a development database before applying to production
+- Document schema changes with comments in the migration files
+
+### RPC Functions
+- Add explicit permission grants for all functions
+- Use SECURITY DEFINER with caution and only when necessary
+- Add proper error handling within functions
+- Return standardized JSON structures for consistent API responses
+- Add parameter validation within functions to prevent SQL injection
+- Use prepared statements or format() with %I for dynamic SQL
+- Properly handle NULL values in function parameters and results
+- Test functions with various input scenarios including edge cases
+
+### Data Management
+- Create indexes for frequently queried columns
+- Use proper constraint types (PRIMARY KEY, FOREIGN KEY, UNIQUE, etc.)
+- Set reasonable default values for required columns
+- Include timestamps for created_at and updated_at
+- Use UUIDs for primary keys when appropriate
+- Implement transaction boundaries for related operations
+- Validate data integrity at both application and database levels
+- Set appropriate NOT NULL constraints on required fields
+
+# User Data Privacy
+- User-specific data should be properly filtered to ensure privacy
+- Search history (FrequentSearches component) now filters by user_id to show only the current user's searches
+- Database queries must include appropriate user_id filters when accessing personal data 

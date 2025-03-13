@@ -1,0 +1,278 @@
+# SubPirateV2 Stripe Integration
+
+## Overview
+
+SubPirateV2's Stripe integration is designed to be simple, dynamic, and maintainable while providing robust subscription management capabilities. This document serves as the source of truth for both technical implementation and business requirements.
+
+## Core Requirements
+
+Our Stripe integration needs to be:
+
+1. Very simple and straight forward. We will need to make database changes, but they need to be as minimal as possible while still robust and effective accomplishing our goals.
+2. The Stripe setup NEEDS to be module and dynamic automatically syncing the products and subscriptions I create and edit in my Stripe account to the app with no hardcoded prices, plans or products. We are in the early startup phase of this project and we need the ability to regularly change the pricing without breaking any functionality or causing errors. This dynamic Stripe setup needs to include updating our pricing table as well, so the plans and prices I create in my Stripe account reflect instantly on in the app and go live.
+3. We will need to create protected pages and/or routes (whichever is more simple to accomplish) within the app for each feature, this will allow us to easily gate various features and tools as we experiment with pricing and offer access to different plans as we go along. I understand that this part will require some altering of the database, but that’s fine since we won’t be changing the available features to the various price points as often as we change the prices and plans themselves. This means again, we need to keep the integration and the database setup simple with the Stripe plans and feature flags easy to edit in the database whenever we choose without needing to change any code.
+4. The Stripe payment integration will require us to properly sync and integrate Stipe with the Supabase Authentication system we correctly have setup properly, but this also should be simple, yet effective and robust. We only need a simple link between Stripe subscriptions, our users in the database, and the feature flags tied to the Stripe plans in their now suppose table which gates certain tools and features in the app based on a user’s subscription tier.
+5. If possible, I would really prefer to avoid using anything we don’t have to like Supabase edge functions and advanced web hook setups outside of the basic functionality we need to ensure our Stripe subscription IDs and customer IDs are perfectly in sync with the app not causing access issues for any users.
+
+### 1. Simplicity & Flexibility
+- Minimal yet effective database schema
+- Dynamic product/price management via Stripe Dashboard
+- No hardcoded prices or plans in the codebase
+- Easy-to-modify feature flags for subscription tiers
+
+### 2. User Experience
+- Allow users to sign up before subscribing
+- Use Stripe Checkout for payment processing
+- Support payment method updates
+- Enable subscription management in settings page
+- Support trial periods for future use
+
+### 3. Feature Access Control
+- Boolean feature flags for each capability
+- Database-driven access control
+- Easy modification of feature access per plan
+- Protected routes/pages for premium features
+
+### 4. Integration Points
+- Supabase Auth <-> Stripe Customer sync
+- Stripe Products/Prices <-> Database sync
+- Subscription status tracking
+- Payment status monitoring
+
+## Technical Implementation
+
+### 1. Database Schema
+
+```sql
+-- Feature definitions
+CREATE TABLE subscription_features (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  feature_key text NOT NULL UNIQUE,
+  name text NOT NULL,
+  description text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Stripe products sync
+CREATE TABLE stripe_products (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  stripe_product_id text NOT NULL UNIQUE,
+  name text NOT NULL,
+  description text,
+  active boolean DEFAULT true,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Stripe prices sync
+CREATE TABLE stripe_prices (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  stripe_price_id text NOT NULL UNIQUE,
+  stripe_product_id text NOT NULL,
+  currency text NOT NULL,
+  unit_amount integer NOT NULL,
+  recurring_interval text,
+  recurring_interval_count integer,
+  active boolean DEFAULT true,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  CONSTRAINT fk_stripe_product
+    FOREIGN KEY (stripe_product_id)
+    REFERENCES stripe_products(stripe_product_id)
+    ON DELETE CASCADE
+);
+
+-- Product feature mapping
+CREATE TABLE product_features (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  stripe_product_id text NOT NULL,
+  feature_key text NOT NULL,
+  enabled boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  CONSTRAINT fk_stripe_product
+    FOREIGN KEY (stripe_product_id)
+    REFERENCES stripe_products(stripe_product_id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_feature
+    FOREIGN KEY (feature_key)
+    REFERENCES subscription_features(feature_key)
+    ON DELETE CASCADE,
+  CONSTRAINT unique_product_feature
+    UNIQUE (stripe_product_id, feature_key)
+);
+
+-- Customer subscriptions
+CREATE TABLE customer_subscriptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id),
+  stripe_customer_id text NOT NULL UNIQUE,
+  stripe_subscription_id text UNIQUE,
+  stripe_price_id text,
+  status text NOT NULL,
+  trial_start timestamptz,
+  trial_end timestamptz,
+  current_period_start timestamptz,
+  current_period_end timestamptz,
+  cancel_at_period_end boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  CONSTRAINT fk_stripe_price
+    FOREIGN KEY (stripe_price_id)
+    REFERENCES stripe_prices(stripe_price_id)
+    ON DELETE SET NULL
+);
+```
+
+### 2. Row Level Security Policies
+
+```sql
+-- RLS Policies
+ALTER TABLE subscription_features ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stripe_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE stripe_prices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_features ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_subscriptions ENABLE ROW LEVEL SECURITY;
+
+-- Subscription features viewable by all authenticated users
+CREATE POLICY "Authenticated users can view features" ON subscription_features
+  FOR SELECT TO authenticated USING (true);
+
+-- Products viewable by all authenticated users
+CREATE POLICY "Authenticated users can view products" ON stripe_products
+  FOR SELECT TO authenticated USING (true);
+
+-- Prices viewable by all authenticated users
+CREATE POLICY "Authenticated users can view prices" ON stripe_prices
+  FOR SELECT TO authenticated USING (true);
+
+-- Product features viewable by all authenticated users
+CREATE POLICY "Authenticated users can view product features" ON product_features
+  FOR SELECT TO authenticated USING (true);
+
+-- Users can view their own subscription
+CREATE POLICY "Users can view own subscription" ON customer_subscriptions
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+```
+
+### 3. Required Webhook Events
+
+```typescript
+const WEBHOOK_EVENTS = [
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'customer.subscription.trial_will_end',
+  'invoice.payment_succeeded',
+  'invoice.payment_failed',
+  'price.created',
+  'price.updated',
+  'price.deleted',
+  'product.created',
+  'product.updated',
+  'product.deleted'
+];
+```
+
+### 4. Feature Keys
+
+```typescript
+type FeatureKey =
+  | 'analyze_subreddit'    // Access to subreddit analysis
+  | 'create_project'       // Ability to create projects
+  | 'add_reddit_account'   // Add Reddit accounts
+  | 'advanced_analytics'   // Access to advanced analytics
+  | 'export_data'          // Export data capabilities
+  | 'api_access'           // API access for automation
+  // Add more features as needed
+```
+
+## Implementation Phases
+
+### Phase 1: Database Setup
+1. Remove existing subscription tables
+2. Create new schema
+3. Implement RLS policies
+4. Create initial feature flags
+
+### Phase 2: Stripe Integration
+1. Set up Stripe client
+2. Configure webhook endpoint
+3. Implement product/price sync
+4. Set up Stripe Checkout integration
+
+### Phase 3: Subscription Management
+1. Implement customer creation
+2. Add subscription creation flow
+3. Handle subscription updates
+4. Enable payment method management
+
+### Phase 4: Feature Access
+1. Implement feature checking
+2. Add protected routes
+3. Create feature-gated components
+4. Test access control
+
+## Security Considerations
+
+### API Keys
+- Store Stripe secret key in environment variables
+- Use restricted API keys where possible
+- Never expose secret keys in client-side code
+
+### Webhooks
+- Validate webhook signatures
+- Use environment-specific webhook secrets
+- Implement idempotency handling
+
+### Data Access
+- Enforce RLS policies
+- Validate user permissions server-side
+- Sanitize all inputs
+
+## Testing Strategy
+
+### Unit Tests
+- Feature access checks
+- Webhook handlers
+- Database operations
+
+### Integration Tests
+- Subscription creation flow
+- Payment processing
+- Feature gate validation
+
+### End-to-End Tests
+- Complete subscription lifecycle
+- Payment method updates
+- Cancellation flows
+
+## Monitoring & Maintenance
+
+### Metrics to Track
+- Subscription conversion rate
+- Payment failure rate
+- Feature usage patterns
+- Error rates
+
+### Regular Maintenance
+- Monitor webhook health
+- Review failed payments
+- Update feature flags
+- Sync product/price data
+
+## Future Considerations
+
+### Potential Enhancements
+- Usage-based billing
+- Team subscriptions
+- Custom enterprise plans
+- Metered features
+
+### Scalability
+- Database indexing strategy
+- Webhook processing queue
+- Cache invalidation plan
+- Error recovery procedures

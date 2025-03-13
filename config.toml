@@ -1,0 +1,4 @@
+[auth.email]
+site_url = "https://pdgnyhkngewmneujsheq.supabase.co"
+autoconfirm = true
+disable_signup = false

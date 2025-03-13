@@ -1,0 +1,34 @@
+CREATE POLICY "Allow authenticated insert" ON public.customer_subscriptions FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.customer_subscriptions FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.customer_subscriptions FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.frequent_searches FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.frequent_searches FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.frequent_searches FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.product_features FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.product_features FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.product_features FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.profiles FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.profiles FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.profiles FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.project_members FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.project_members FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.project_members FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.project_subreddits FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.project_subreddits FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.project_subreddits FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.projects FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.projects FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.projects FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.reddit_accounts FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON public.reddit_accounts FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow public read access" ON public.reddit_accounts FOR SELECT TO public USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON public.reddit_api_usage FOR INSERT TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Allow authenticated update" ON

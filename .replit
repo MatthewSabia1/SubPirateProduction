@@ -1,0 +1,134 @@
+modules = ["nodejs-20", "postgresql-16"]
+
+entrypoint = "webhook-server.js"
+
+[[ports]]
+localPort = 3000
+externalPort = 3003
+
+[[ports]]
+localPort = 3001
+externalPort = 4200
+
+[[ports]]
+localPort = 3002
+externalPort = 6000
+
+[[ports]]
+localPort = 3003
+externalPort = 6800
+
+[[ports]]
+localPort = 3004
+externalPort = 8008
+
+[[ports]]
+localPort = 3005
+externalPort = 8080
+
+[[ports]]
+localPort = 3006
+externalPort = 8081
+
+[[ports]]
+localPort = 3007
+externalPort = 8099
+
+[[ports]]
+localPort = 3008
+externalPort = 9000
+
+[[ports]]
+localPort = 4242
+externalPort = 3000
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 5001
+externalPort = 80
+
+[[ports]]
+localPort = 5002
+externalPort = 3002
+
+[[ports]]
+localPort = 5173
+externalPort = 5173
+
+[[ports]]
+localPort = 8000
+externalPort = 8000
+
+[[ports]]
+localPort = 24678
+externalPort = 443
+
+[nix]
+channel = "stable-22_11"
+
+[deployment]
+run = "./replit-start.sh"
+deploymentTarget = "cloudrun"
+
+[env]
+LANG = "en_US.UTF-8"
+NODE_ENV = "development"
+STRIPE_TEST_MODE = "true"
+REPLIT_ENVIRONMENT = "true"
+WEBHOOK_PORT = "5001"
+
+[secrets]
+VITE_SUPABASE_URL = { description = "Your Supabase URL" }
+VITE_SUPABASE_ANON_KEY = { description = "Your Supabase anonymous key" }
+VITE_STRIPE_SECRET_KEY = { description = "Your Stripe secret key" }
+VITE_STRIPE_PROD_WEBHOOK_SECRET = { description = "Your Stripe production webhook secret" }
+VITE_CLERK_PUBLISHABLE_KEY = { description = "Your Clerk publishable key" }
+VITE_CLERK_SECRET_KEY = { description = "Your Clerk secret key" }
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Webhook Server"
+
+[[workflows.workflow]]
+name = "Webhook Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production node webhook-server.js"
+
+[gitHook]
+afterPull = "./replit-init.sh"
+
+[packager]
+language = "nodejs"
+
+[packager.features]
+enabledForHosting = false
+packageSearch = true
+guessImports = true
+
+[languages]
+
+[languages.javascript]
+pattern = "**/*.{js,jsx,ts,tsx}"
+
+[languages.javascript.languageServer]
+start = "typescript-language-server --stdio"

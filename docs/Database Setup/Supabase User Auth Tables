@@ -1,0 +1,270 @@
+CREATE TABLE auth.audit_log_entries (
+  instance_id uuid NULL,
+  id uuid NOT NULL,
+  payload json NULL,
+  created_at timestamp with time zone NULL,
+  ip_address character varying(64) NOT NULL DEFAULT ''::character varying,
+  CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS audit_logs_instance_id_idx ON auth.audit_log_entries USING btree (instance_id);
+
+CREATE TABLE auth.flow_state (
+  id uuid NOT NULL,
+  user_id uuid NULL,
+  auth_code text NOT NULL,
+  code_challenge_method auth.code_challenge_method NOT NULL,
+  code_challenge text NOT NULL,
+  provider_type text NOT NULL,
+  provider_access_token text NULL,
+  provider_refresh_token text NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  authentication_method text NOT NULL,
+  auth_code_issued_at timestamp with time zone NULL,
+  CONSTRAINT flow_state_pkey PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS flow_state_created_at_idx ON auth.flow_state USING btree (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_code ON auth.flow_state USING btree (auth_code);
+CREATE INDEX IF NOT EXISTS idx_user_id_auth_method ON auth.flow_state USING btree (user_id, authentication_method);
+
+CREATE TABLE auth.identities (
+  provider_id text NOT NULL,
+  user_id uuid NOT NULL,
+  identity_data jsonb NOT NULL,
+  provider text NOT NULL,
+  last_sign_in_at timestamp with time zone NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  email text GENERATED ALWAYS AS (lower((identity_data ->> 'email'::text))) STORED NULL,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  CONSTRAINT identities_pkey PRIMARY KEY (id),
+  CONSTRAINT identities_provider_id_provider_unique UNIQUE (provider_id, provider),
+  CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS identities_email_idx ON auth.identities USING btree (email text_pattern_ops);
+CREATE INDEX IF NOT EXISTS identities_user_id_idx ON auth.identities USING btree (user_id);
+
+CREATE TABLE auth.instances (
+  id uuid NOT NULL,
+  uuid uuid NULL,
+  raw_base_config text NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  CONSTRAINT instances_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE auth.mfa_amr_claims (
+  session_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL,
+  authentication_method text NOT NULL,
+  id uuid NOT NULL,
+  CONSTRAINT amr_id_pk PRIMARY KEY (id),
+  CONSTRAINT mfa_amr_claims_session_id_authentication_method_pkey UNIQUE (session_id, authentication_method),
+  CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE auth.mfa_challenges (
+  id uuid NOT NULL,
+  factor_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  verified_at timestamp with time zone NULL,
+  ip_address inet NOT NULL,
+  otp_code text NULL,
+  web_authn_session_data jsonb NULL,
+  CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id),
+  CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS mfa_challenge_created_at_idx ON auth.mfa_challenges USING btree (created_at DESC);
+
+CREATE TABLE auth.mfa_factors (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  friendly_name text NULL,
+  factor_type auth.factor_type NOT NULL,
+  status auth.factor_status NOT NULL,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL,
+  secret text NULL,
+  phone text NULL,
+  last_challenged_at timestamp with time zone NULL,
+  web_authn_credential jsonb NULL,
+  web_authn_aaguid uuid NULL,
+  CONSTRAINT mfa_factors_pkey PRIMARY KEY (id),
+  CONSTRAINT mfa_factors_last_challenged_at_key UNIQUE (last_challenged_at),
+  CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS factor_id_created_at_idx ON auth.mfa_factors USING btree (user_id, created_at);
+CREATE UNIQUE INDEX IF NOT EXISTS mfa_factors_user_friendly_name_unique ON auth.mfa_factors USING btree (friendly_name, user_id) WHERE (TRIM(BOTH FROM friendly_name) <> ''::text);
+CREATE INDEX IF NOT EXISTS mfa_factors_user_id_idx ON auth.mfa_factors USING btree (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_phone_factor_per_user ON auth.mfa_factors USING btree (user_id, phone);
+
+CREATE TABLE auth.one_time_tokens (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  token_type auth.one_time_token_type NOT NULL,
+  token_hash text NOT NULL,
+  relates_to text NOT NULL,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT one_time_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT one_time_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE,
+  CONSTRAINT one_time_tokens_token_hash_check CHECK ((char_length(token_hash) > 0))
+);
+CREATE INDEX IF NOT EXISTS one_time_tokens_relates_to_hash_idx ON auth.one_time_tokens USING hash (relates_to);
+CREATE INDEX IF NOT EXISTS one_time_tokens_token_hash_hash_idx ON auth.one_time_tokens USING hash (token_hash);
+CREATE UNIQUE INDEX IF NOT EXISTS one_time_tokens_user_id_token_type_key ON auth.one_time_tokens USING btree (user_id, token_type);
+
+CREATE TABLE auth.refresh_tokens (
+  instance_id uuid NULL,
+  id bigserial NOT NULL,
+  token character varying(255) NULL,
+  user_id character varying(255) NULL,
+  revoked boolean NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  parent character varying(255) NULL,
+  session_id uuid NULL,
+  CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id),
+  CONSTRAINT refresh_tokens_token_unique UNIQUE (token),
+  CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS refresh_tokens_instance_id_idx ON auth.refresh_tokens USING btree (instance_id);
+CREATE INDEX IF NOT EXISTS refresh_tokens_instance_id_user_id_idx ON auth.refresh_tokens USING btree (instance_id, user_id);
+CREATE INDEX IF NOT EXISTS refresh_tokens_parent_idx ON auth.refresh_tokens USING btree (parent);
+CREATE INDEX IF NOT EXISTS refresh_tokens_session_id_revoked_idx ON auth.refresh_tokens USING btree (session_id, revoked);
+CREATE INDEX IF NOT EXISTS refresh_tokens_updated_at_idx ON auth.refresh_tokens USING btree (updated_at DESC);
+
+CREATE TABLE auth.saml_providers (
+  id uuid NOT NULL,
+  sso_provider_id uuid NOT NULL,
+  entity_id text NOT NULL,
+  metadata_xml text NOT NULL,
+  metadata_url text NOT NULL,
+  attribute_mapping jsonb NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  name_id_format text NULL,
+  CONSTRAINT saml_providers_pkey PRIMARY KEY (id),
+  CONSTRAINT saml_providers_entity_id_key UNIQUE (entity_id),
+  CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE,
+  CONSTRAINT entity_id_not_empty CHECK ((char_length(entity_id) > 0)),
+  CONSTRAINT metadata_url_not_empty CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0))),
+  CONSTRAINT metadata_xml_not_empty CHECK ((char_length(metadata_xml) > 0))
+);
+CREATE INDEX IF NOT EXISTS saml_providers_sso_provider_id_idx ON auth.saml_providers USING btree (sso_provider_id);
+
+CREATE TABLE auth.saml_relay_states (
+  id uuid NOT NULL,
+  sso_provider_id uuid NOT NULL,
+  request_id text NOT NULL,
+  for_email text NULL,
+  redirect_to text NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  flow_state_id uuid NULL,
+  CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id),
+  CONSTRAINT saml_relay_states_flow_state_id_fkey FOREIGN KEY (flow_state_id) REFERENCES auth.flow_state(id) ON DELETE CASCADE,
+  CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE,
+  CONSTRAINT request_id_not_empty CHECK ((char_length(request_id) > 0))
+);
+CREATE INDEX IF NOT EXISTS saml_relay_states_created_at_idx ON auth.saml_relay_states USING btree (created_at DESC);
+CREATE INDEX IF NOT EXISTS saml_relay_states_for_email_idx ON auth.saml_relay_states USING btree (for_email);
+CREATE INDEX IF NOT EXISTS saml_relay_states_sso_provider_id_idx ON auth.saml_relay_states USING btree (sso_provider_id);
+
+CREATE TABLE auth.schema_migrations (
+  version character varying(255) NOT NULL,
+  CONSTRAINT schema_migrations_pkey PRIMARY KEY (version)
+);
+
+CREATE TABLE auth.sessions (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  factor_id uuid NULL,
+  aal auth.aal_level NULL,
+  not_after timestamp with time zone NULL,
+  refreshed_at timestamp without time zone NULL,
+  user_agent text NULL,
+  ip inet NULL,
+  tag text NULL,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS sessions_not_after_idx ON auth.sessions USING btree (not_after DESC);
+CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON auth.sessions USING btree (user_id);
+CREATE INDEX IF NOT EXISTS user_id_created_at_idx ON auth.sessions USING btree (user_id, created_at);
+
+CREATE TABLE auth.sso_domains (
+  id uuid NOT NULL,
+  sso_provider_id uuid NOT NULL,
+  domain text NOT NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  CONSTRAINT sso_domains_pkey PRIMARY KEY (id),
+  CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE,
+  CONSTRAINT domain_not_empty CHECK ((char_length(domain) > 0))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS sso_domains_domain_idx ON auth.sso_domains USING btree (lower(domain));
+CREATE INDEX IF NOT EXISTS sso_domains_sso_provider_id_idx ON auth.sso_domains USING btree (sso_provider_id);
+
+CREATE TABLE auth.sso_providers (
+  id uuid NOT NULL,
+  resource_id text NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  CONSTRAINT sso_providers_pkey PRIMARY KEY (id),
+  CONSTRAINT resource_id_not_empty CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS sso_providers_resource_id_idx ON auth.sso_providers USING btree (lower(resource_id));
+
+CREATE TABLE auth.users (
+  instance_id uuid NULL,
+  id uuid NOT NULL,
+  aud character varying(255) NULL,
+  role character varying(255) NULL,
+  email character varying(255) NULL,
+  encrypted_password character varying(255) NULL,
+  email_confirmed_at timestamp with time zone NULL,
+  invited_at timestamp with time zone NULL,
+  confirmation_token character varying(255) NULL,
+  confirmation_sent_at timestamp with time zone NULL,
+  recovery_token character varying(255) NULL,
+  recovery_sent_at timestamp with time zone NULL,
+  email_change_token_new character varying(255) NULL,
+  email_change character varying(255) NULL,
+  email_change_sent_at timestamp with time zone NULL,
+  last_sign_in_at timestamp with time zone NULL,
+  raw_app_meta_data jsonb NULL,
+  raw_user_meta_data jsonb NULL,
+  is_super_admin boolean NULL,
+  created_at timestamp with time zone NULL,
+  updated_at timestamp with time zone NULL,
+  phone text NULL DEFAULT NULL::character varying,
+  phone_confirmed_at timestamp with time zone NULL,
+  phone_change text NULL DEFAULT ''::character varying,
+  phone_change_token character varying(255) NULL DEFAULT ''::character varying,
+  phone_change_sent_at timestamp with time zone NULL,
+  confirmed_at timestamp with time zone GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED NULL,
+  email_change_token_current character varying(255) NULL DEFAULT ''::character varying,
+  email_change_confirm_status smallint NULL DEFAULT 0,
+  banned_until timestamp with time zone NULL,
+  reauthentication_token character varying(255) NULL DEFAULT ''::character varying,
+  reauthentication_sent_at timestamp with time zone NULL,
+  is_sso_user boolean NOT NULL DEFAULT false,
+  deleted_at timestamp with time zone NULL,
+  is_anonymous boolean NOT NULL DEFAULT false,
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_phone_key UNIQUE (phone),
+  CONSTRAINT users_email_change_confirm_status_check CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS confirmation_token_idx ON auth.users USING btree (confirmation_token) WHERE ((confirmation_token)::text !~ '^[0-9 ]*$'::text);
+CREATE UNIQUE INDEX IF NOT EXISTS email_change_token_current_idx ON auth.users USING btree (email_change_token_current) WHERE ((email_change_token_current)::text !~ '^[0-9 ]*$'::text);
+CREATE UNIQUE INDEX IF NOT EXISTS email_change_token_new_idx ON auth.users USING btree (email_change_token_new) WHERE ((email_change_token_new)::text !~ '^[0-9 ]*$'::text);
+CREATE UNIQUE INDEX IF NOT EXISTS reauthentication_token_idx ON auth.users USING btree (reauthentication_token) WHERE ((reauthentication_token)::text !~ '^[0-9 ]*$'::text);
+CREATE UNIQUE INDEX IF NOT EXISTS recovery_token_idx ON auth.users USING btree (recovery_token) WHERE ((recovery_token)::text !~ '^[0-9 ]*$'::text);
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_partial_key ON auth.users USING btree (email) WHERE (is_sso_user = false);
+CREATE INDEX IF NOT EXISTS users_instance_id_email_idx ON auth.users USING btree (instance_id, lower((email)::text));
+CREATE INDEX IF NOT EXISTS users_instance_id_idx ON auth.users USING btree (instance_id);
+CREATE INDEX IF NOT EXISTS users_is_anonymous_idx ON auth.users USING btree (is_anonymous);

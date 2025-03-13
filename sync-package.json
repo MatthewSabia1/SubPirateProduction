@@ -1,0 +1,15 @@
+{
+  "name": "stripe-sync-script",
+  "version": "1.0.0",
+  "description": "Sync Stripe products and prices to Supabase",
+  "main": "sync-stripe-products.js",
+  "type": "module",
+  "scripts": {
+    "start": "node sync-stripe-products.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "@supabase/supabase-js": "^2.38.4",
+    "stripe": "^14.2.0"
+  }
+} 

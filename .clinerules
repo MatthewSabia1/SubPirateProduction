@@ -1,0 +1,103 @@
+# Cline Rules for SubPirate
+
+## Project-Specific Patterns
+
+### 1. Image Handling
+- When displaying images from Reddit (or any external source), always use the `RedditImage` component
+- Never directly use the `<img>` tag for external resources, especially from Reddit
+- Always provide a fallback image or let the component generate a placeholder
+- Use lazy loading for all images to improve performance
+
+### 2. Error Handling
+- Use try/catch blocks for all async operations
+- Provide meaningful error messages to users
+- Include context in error messages (what was being attempted)
+- Log detailed information for debugging
+- Use consistent error handling patterns across the application
+
+### 3. API Interactions
+- Be cautious of Reddit API rate limits
+- Use proper error handling for API calls
+- Implement retries for transient failures
+- Cache results where appropriate to reduce API usage
+
+### 4. Component Structure
+- Use presentational/container separation
+- Use custom hooks for complex logic
+- Keep components focused on a single responsibility
+- Use TypeScript interfaces for all props
+
+### 5. Styling Conventions
+- Use Tailwind CSS for styling
+- Follow the app's dark theme color scheme
+- Use the app's accent color (#C69B7B) for interactive elements
+- Use consistent spacing and padding
+
+### 6. User Experience
+- Provide feedback for all user actions
+- Show loading states for async operations
+- Implement proper error recovery
+- Ensure smooth transitions between states
+
+### 7. State Management
+- Use React hooks for local state
+- Use context for shared state
+- Minimize prop drilling
+- Use optimistic updates for improved UX
+
+### 8. Testing
+- Write tests for critical functionality
+- Test edge cases and error states
+- Use meaningful test descriptions
+- Mock external dependencies
+
+### 9. Stripe Integration
+- Always check both build environment AND domain name when determining production mode
+- Never hardcode test mode flags - use environment detection
+- Use different environment variables for test vs. production API keys
+- Verify webhook endpoint configuration before deploying to production
+- Log detailed information about the current environment for debugging
+- Run verification script before production deployment
+- Handle test mode in UI with clear visual indicators
+- Implement comprehensive error handling for payment failures
+- Never commit actual API keys to the repository
+
+## Project Preferences
+
+### 1. Code Style
+- Use functional components
+- Use TypeScript for all new code
+- Use async/await for asynchronous operations
+- Use destructuring for props and state
+
+### 2. File Organization
+- Group related files by feature
+- Use index files for exporting
+- Keep file sizes manageable
+- Use consistent naming conventions
+
+### 3. Documentation
+- Document complex functions
+- Include examples where helpful
+- Document state management patterns
+- Keep documentation up-to-date
+
+### 4. Performance
+- Use memoization for expensive calculations
+- Implement pagination for large datasets
+- Optimize renders with useCallback and useMemo
+- Monitor and optimize bundle size
+
+### 5. Accessibility
+- Use semantic HTML
+- Provide alt text for images
+- Ensure proper contrast
+- Support keyboard navigation
+
+### 6. Environment Configuration
+- Use separate .env files for development and production
+- Clearly differentiate between test and production API keys
+- Follow environment-specific logging patterns
+- Include verification steps in deployment process
+- Document required environment variables for each environment
+- Use domain and build-based environment detection for third-party services 

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/src/brand_assets/favicon_io/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/src/brand_assets/favicon_io/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/src/brand_assets/favicon_io/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/src/brand_assets/favicon_io/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/src/brand_assets/SubPirate_light_icon_logo.svg" />
+    <link rel="manifest" href="/src/brand_assets/favicon_io/site.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1E293B" />
+    <title>SubPirate</title>
+    
+    <!-- Emergency fallback style for blank page issues -->
+    <style>
+      #emergency-fallback {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1E293B;
+        color: white;
+        z-index: 9999;
+        padding: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+      .fallback-container {
+        max-width: 600px;
+        margin: 100px auto;
+        text-align: center;
+      }
+      .fallback-button {
+        background-color: #3B82F6;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+      /* Show fallback content after 10 seconds if app hasn't loaded */
+      @media (prefers-reduced-motion: no-preference) {
+        .fallback-show-delayed {
+          animation: show-delayed 1s ease-in forwards;
+          animation-delay: 10s;
+        }
+        @keyframes show-delayed {
+          to { display: block; }
+        }
+      }
+    </style>
+
+    <!-- Enhanced authentication redirects handler -->
+    <script type="text/javascript">
+      // Set a page load timeout to detect blank page issues
+      window.appLoadTimeout = setTimeout(function() {
+        var fallback = document.getElementById('emergency-fallback');
+        if (fallback) {
+          fallback.style.display = 'block';
+          console.error('App failed to load within timeout period');
+        }
+      }, 10000);
+      
+      // Clear the timeout when app loads successfully
+      document.addEventListener('DOMContentLoaded', function() {
+        if (window.appLoadTimeout) {
+          clearTimeout(window.appLoadTimeout);
+        }
+      });
+      
+      // Authentication redirect handling
+      (function() {
+        try {
+          console.log('Initializing auth redirect handler in index.html');
+          
+          // Check if we have auth-related fragments in the URL
+          const hash = window.location.hash;
+          const hasAuthParams = hash && (
+            hash.includes('access_token') || 
+            hash.includes('id_token') || 
+            hash.includes('refresh_token') || 
+            hash.includes('error_description')
+          );
+          
+          // Log to console for debugging (redact actual tokens)
+          const debugUrl = window.location.href.replace(/access_token=([^&]+)/, 'access_token=REDACTED');
+          console.log('URL check in index.html', {
+            pathname: window.location.pathname,
+            hasHash: !!hash,
+            hasAuthParams,
+            hostname: window.location.hostname,
+            url: debugUrl
+          });
+          
+          // If we're not already on the callback path and we have auth params
+          if (!window.location.pathname.includes('/auth/callback') && hasAuthParams) {
+            console.log('Auth redirect detected, redirecting to callback handler');
+            
+            // Store the hash for the callback component to use
+            try {
+              sessionStorage.setItem('supabase-auth-hash', hash);
+              
+              // Build the callback URL
+              const callbackUrl = window.location.hostname === 'subpirate.com'
+                ? 'https://subpirate.com/auth/callback'
+                : '/auth/callback';
+                
+              // Ensure we have a clean URL without any trailing spaces
+              const cleanCallbackUrl = callbackUrl.trim();
+              
+              // Ensure we properly append the hash
+              const redirectUrl = `${cleanCallbackUrl}${hash}`;
+              
+              console.log('Redirecting to:', redirectUrl.replace(/access_token=([^&]+)/, 'access_token=REDACTED'));
+              
+              // Use replace for a clean redirect
+              window.location.replace(redirectUrl);
+            } catch (error) {
+              console.error('Error handling auth redirect:', error);
+            }
+          }
+        } catch (e) {
+          console.error('Error in auth redirect script:', e);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <!-- Emergency fallback content if app fails to load -->
+    <div id="emergency-fallback" class="fallback-show-delayed">
+      <div class="fallback-container">
+        <h1>SubPirate</h1>
+        <p>We're having trouble loading the application.</p>
+        <p>This might be due to a temporary issue or a deployment in progress.</p>
+        <button class="fallback-button" onclick="window.location.href='/'">Reload Application</button>
+        <p style="margin-top: 20px; font-size: 14px;">
+          If this problem persists, please try clearing your browser cache or contact support.
+        </p>
+      </div>
+    </div>
+    
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
