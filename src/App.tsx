@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useRoutes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -30,6 +30,8 @@ import { Menu } from 'lucide-react';
 import { useRedirectHandler } from './lib/useRedirectHandler';
 import Admin from './pages/Admin';
 import TestWebhook from './pages/TestWebhook';
+// Import tempo routes
+import tempoRoutes from './tempo-routes.tsx';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -174,6 +176,9 @@ function App() {
             <QueryClientProvider client={queryClient}>
               <Router>
                 <RedditAccountProvider>
+                  {/* Tempo routes - only included when VITE_TEMPO is true */}
+                  {import.meta.env.VITE_TEMPO && useRoutes(tempoRoutes)}
+                  
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<Login />} />
@@ -248,6 +253,11 @@ function App() {
                         <TestWebhook />
                       </PrivateRoute>
                     } />
+                    {/* Add Tempo route before the catchall */}
+                    {import.meta.env.VITE_TEMPO && <Route path="/tempobook/*" />}
+                    
+                    {/* Catchall route */}
+                    <Route path="*" element={<Navigate to="/" />} />
                   </Routes>
                 </RedditAccountProvider>
               </Router>
